@@ -1,0 +1,69 @@
+#This program computes the uberhomology of a graph G in the bidegree (filtration, homological) = (2,1)
+#More concretely, it computes a singly graded homology theory associated to the poset of bi-colourings
+#of G and the interaction with white edges. Note that this homology is conjecturally trivial!
+#Warning: the current implementation only works for connected graphs! Also, it might get slow for
+#graphs with more than 10 crossings.
+#To use this program, copy and paste this txt in your Sage notebook, or on a online sage cell 
+#sagecell.sagemath.org/
+
+#To start the computation, modify the first line of code with your favourite graph 
+
+
+############################################################
+############################################################
+G = graphs.CompleteGraph(5)
+############################################################
+############################################################
+
+from itertools import chain, combinations
+from sage.graphs.connectivity import connected_components
+############################################################
+def powerset(iterable):
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+############################################################
+def unpack_list(stringa):
+    out_values = []
+    for ll in stringa:
+        for pp in ll:
+            out_values.append(pp)
+    return out_values
+############################################################
+def find_index(indice1, indice2, lista_gens_single_degree):
+    indice_out = 0
+    for ll in range(indice1):
+        indice_out += len(lista_gens_single_degree[ll])
+    return indice_out + indice2
+############################################################
+def all_white_edges(grafo, vertici_neri):
+    white_edges = []
+    for ee in grafo.edges(labels=False):
+        if ee[0] not in vertici_neri and ee[1] not in vertici_neri:
+            white_edges.append(list(ee))
+    return white_edges
+############################################################
+P = [list(p) for p in list(powerset(G.vertices()))]
+subgraphs = []
+for i in range(len(G.vertices())):
+    subgraphs.append([q for q in P if len(q) == i])
+generators = []
+for el in subgraphs:
+    aux_gen = []
+    for ell in el:
+        aux_gen.append(all_white_edges(G,ell))
+    generators.append(aux_gen)
+differentials = []
+for ii in range(len(G.vertices())-1):
+    Mdiff = Mdiff = Matrix(GF(2), len(unpack_list(generators[ii+1])),len(unpack_list(generators[ii])) )
+    for parent1 in range(len(generators[ii])):
+        for cc1 in range(len(generators[ii][parent1])):
+            for parent2 in range(len(generators[ii+1])):
+                for cc2 in range(len(generators[ii+1][parent2])):
+                    if set(subgraphs[ii][parent1]).issubset(subgraphs[ii+1][parent2]):
+                        if generators[ii][parent1][cc1] == generators[ii+1][parent2][cc2]:
+                            Mdiff[find_index(parent2,cc2,generators[ii+1]),find_index(parent1,cc1,generators[ii])] = 1
+    differentials.append(Mdiff)   
+CH = ChainComplex(differentials)
+HOM = CH.homology()
+show(G.plot())                  #comment this line to avoid plotting the graph
+show(HOM)
