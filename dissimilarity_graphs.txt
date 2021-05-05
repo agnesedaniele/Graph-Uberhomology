@@ -1,0 +1,172 @@
+##########---------------++++++++++++++++++\\\\\\\\\\\\\\\\
+
+#The following program is a "proof of concept" highly inefficient version of the algorithm detailed in the paper
+#"Simplicial complexes, graphs and Uberhomology". Soon a more efficient version will be uploaded in this GitHub page.
+#To start, open this file in a Sage notebook, modify the two lines below putting the chosen graphs, given as 
+#pairs of vertices (ranging from 0 to |V|-1). If the "verbose_option" is set to True, the output will include
+#the computation of the Theta invariants in each level.
+#Finally, the dissimilarity between the two graphs is printed.
+
+G1 = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 3], [1, 4], [2, 5]]
+G2 = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 3], [1, 5], [2, 4]]
+
+verbose_option = False
+draw_graphs = False
+
+##########---------------++++++++++++++++++\\\\\\\\\\\\\\\\
+##########---------------++++++++++++++++++\\\\\\\\\\\\\\\\
+
+from itertools import product
+import time
+
+def powerset(s):
+    x = len(s)
+    masks = [1 << i for i in range(x)]
+    for i in range(1 << x):
+        yield [ss for mask, ss in zip(masks, s) if i & mask]
+############################################################
+def Sorting(lst): 
+    lst2 = sorted(lst, key=len, reverse = True) 
+    return lst2 
+############################################################
+def hor_boundary(simplesso, colore):
+    aux_out = []
+    for pp in simplesso:
+        if colore[pp] == 1:
+            aux_out.append([qq for qq in simplesso if qq != pp])
+    if aux_out != []:
+        aux_out = aux_out
+    return aux_out
+############################################################
+def generate_all_colours(numb_vertices):
+    out_aux = []
+    for combo in product([0,1], repeat=numb_vertices):
+        out_aux.append(list(combo))
+    return out_aux
+############################################################
+def compute_horizontal_homology(spxcpx, colour):
+    all_simplices = []
+    aux_all_simplices = [list(powerset(TT)) for TT in spxcpx]
+    for ee in aux_all_simplices:
+        ee.remove([])
+    max_filtration = 0
+    for ee in aux_all_simplices:
+        for ff in ee:
+            if ff not in all_simplices:
+                all_simplices.append(ff)
+                valore = len(ff) - sum([colour[jj] for jj in ff])
+                if valore > max_filtration:
+                    max_filtration = valore
+    complexes = [[] for p in range(max_filtration+1)]
+    
+    max_filtration_level = 0
+    for sigma in all_simplices:
+        complexes[len(sigma) - sum([colour[jj] for jj in sigma])].append(sigma)
+        if len(sigma) - sum([colour[jj] for jj in sigma])> max_filtration_level:
+            max_filtration_level = len(sigma) - sum([colour[jj] for jj in sigma])
+    for el in complexes:
+        el = Sorting(el)
+        if el == []:
+            complexes.remove(el)
+    complexes_ord = []
+    for el in complexes:
+        aux_ord = []
+        for g in range(max([len(pp) for pp in el])+1):
+            if len([pp for pp in el if len(pp) == g])>0:
+                aux_ord.append([pp for pp in el if len(pp) == g])
+        complexes_ord.append(aux_ord)
+    dimensions_of_simplices = []
+    for ttt in complexes_ord:
+        aux_dim = []
+        for rr in ttt:
+            aux_dim.append(len(rr[0])-1)
+        dimensions_of_simplices.append(aux_dim[::-1])
+    dimensions_of_simplices = dimensions_of_simplices[::-1]
+    ALL_diffs = []
+    for tt in range(len(complexes_ord)):
+        aux_diffs = {}
+        if len(complexes_ord[tt]) == 1:
+            aux_diffs[len(complexes_ord[tt][0])] = Matrix(GF(2),0,len(complexes_ord[tt][0]))
+        for yy in range(1,len(complexes_ord[tt])):
+            Mdiff = Matrix(GF(2),len(complexes_ord[tt][yy-1]),len(complexes_ord[tt][yy]))
+            for zz in range(len(complexes_ord[tt][yy])):
+                elem = complexes_ord[tt][yy][zz]
+                if hor_boundary(elem, colour) != []:
+                    for bb in hor_boundary(elem, colour):
+                        Mdiff[complexes_ord[tt][yy-1].index(bb),zz] = 1
+            aux_diffs[len(complexes_ord[tt][yy][0])] = Mdiff
+        ALL_diffs.append({max(aux_diffs.keys())- pp : aux_diffs[pp] for pp in aux_diffs.keys()}) 
+    counter = max_filtration_level
+    All_degrees = []
+    coount = 0
+    for eee in ALL_diffs[::-1]:
+        C = ChainComplex(eee)
+        H = C.homology()
+        for pp in range(len(H)):
+            homol_deg = dimensions_of_simplices[coount][pp]
+            All_degrees.append([sum(colour),homol_deg,counter,H[pp].degree()])
+        coount +=1
+        counter-=1
+    return All_degrees
+############################################################
+def generate_cols(lista,N,K):
+    if len(lista) == N:
+        string_colors.append(lista)
+    if sum(lista) < K and K - sum(lista) <= N - len(lista):
+        generate_cols(lista+[1],N,K)
+    if N - len(lista) > K -sum(lista):
+        generate_cols(lista+[0],N,K)
+############################################################
+
+
+string_colors = []
+print('Graphs considered:\nG1 = %s\nG2 = %s\n\n' %(G1,G2))
+if draw_graphs == True:
+    show(Graph(G1).plot(),Graph(G2).plot())
+if len(G1) != len(G2):
+    raise Exception("Different number of EDGES, the graphs are different!\n\nDissimilarity = 1")
+X0 = [G1[0][0]]
+for el in G1:
+    X0 = set(X0).union(set(el))
+number_of_vertices1 = len(X0)
+X1 = [G2[0][0]]
+for el in G2:
+    X1 = set(X1).union(set(el))
+number_of_vertices2 = len(X1)
+if set([x for x in range(len(X0))]) != X0 or set([x for x in range(len(X1))]) != X1:
+    raise Exception('You need to use all vertices from 0 to |V(G)|!')
+if number_of_vertices1 != number_of_vertices2:
+    raise Exception('Different number of VERTICES, the graphs are different!\n\nDissimilarity = 1')
+if Graph(G1).degree_sequence() != Graph(G2).degree_sequence():
+    raise Exception('Different DEGREE SEQUENCES, the graphs are different!\n\nDissimilarity = ',1 - 1/number_of_vertices2)
+
+flag = 0
+increment = 2
+while flag == 0:
+    hor_ranks1 = []
+    hor_ranks2 = []
+    generate_cols([],max([max(v) for v in G1])+1,increment)
+    for stringa in string_colors:
+        outputG1 = compute_horizontal_homology(G1, stringa)
+        outputG2 = compute_horizontal_homology(G2, stringa)
+        hor_ranks1 = hor_ranks1 + outputG1
+        hor_ranks2 = hor_ranks2 + outputG2
+    hor_ranks1.sort()
+    hor_ranks2.sort()
+    if verbose_option == True:
+        print('Theta invariant for G1 at level %s:\n'%increment, hor_ranks1)
+        print('Theta invariant for G2 at level %s:\n'%increment, hor_ranks2)
+    string_colors = []
+    if hor_ranks1 == hor_ranks2:
+        print('The two graphs are the same up to %s black vertices' %increment)
+    else:
+        print('Difference detected with %s vertices' %increment )
+        flag = 1
+    increment +=1
+    if increment == max([max(v) for v in G1])+1:
+        flag = 1
+        increment+=1
+dissimilarity = 1 - ((increment-1)/number_of_vertices1 )
+print('\nThe dissimilarity of the two graphs is ', dissimilarity)
+if dissimilarity == 0:
+    print('Hopefully the two graphs are isomorphic, otherwise you\'ve found a counter-example to my conjecture!')
