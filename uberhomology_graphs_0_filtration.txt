@@ -7,6 +7,9 @@
 #sagecell.sagemath.org/
 
 #To start the computation, modify the first line of code with your favourite graph 
+#The author was supported by the European Research Council (ERC) under the European Union’s Horizon 2020 research and 
+#innovation programme (grant agreement No 674978).
+
 
 
 ############################################################
