@@ -6,6 +6,8 @@
 #pairs of vertices (ranging from 0 to |V|-1). If the "verbose_option" is set to True, the output will include
 #the computation of the Theta invariants in each level.
 #Finally, the dissimilarity between the two graphs is printed.
+#The author was supported by the European Research Council (ERC) under the European Union’s Horizon 2020 research and 
+#innovation programme (grant agreement No 674978).
 
 G1 = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 3], [1, 4], [2, 5]]
 G2 = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 3], [1, 5], [2, 4]]
